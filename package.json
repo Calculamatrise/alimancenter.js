@@ -1,0 +1,20 @@
+{
+	"name": "alimancenterjs",
+	"version": "0.0.1",
+	"author": "Calculus",
+	"main": "bootstrap.js",
+	"type": "module",
+	"dependencies": {
+		"canvas": "^2.11.2",
+		"discord.js": "^14.16.3"
+	},
+	"scripts": {
+		"test": "nodemon --trace-deprecation . dev",
+		"start": "node ."
+	},
+	"engines": {
+		"node": ">=v19.5.0",
+		"npm": "*"
+	},
+	"license": "ISC"
+}
