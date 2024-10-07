@@ -23,7 +23,7 @@ export default {
 			}
 		}).then(() => {
 			return {
-				content: `Successfully enabled ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders ${interaction.context === 0 ? 'for this server in ' + channel.name : 'for you in your DMs'}.`,
+				content: `Successfully enabled ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders for ${interaction.context === 0 ? 'this server in ' + channel.name : 'you in your DMs'}.`,
 				ephemeral: true
 			}
 		}).catch(err => {

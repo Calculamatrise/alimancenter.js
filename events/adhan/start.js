@@ -6,7 +6,7 @@ export default async function (prayerInfo) {
 		activities: [{
 			name: prayerInfo.prayer + ' Adhan',
 			type: 1,
-			url: 'https://www.youtube.com/@alimancenter2705'
+			url: 'https://youtube.com/@alimancenter2705'
 		}]
 	});
 	for (let [guildId, guildData] of this.database.guilds.cache.entries()) {
@@ -39,7 +39,13 @@ export default async function (prayerInfo) {
 		});
 	}
 
+	this.updateDescription();
+
 	let nextPrayer = await Adhan.next();
-	nextPrayer || console.warn('[AdhanStart] Next prayer not found!', nextPrayer);
-	nextPrayer && (this._nextPrayerTimeout = setTimeout(this.emit.bind(this), nextPrayer.timeRemaining * 6e4, 'adhanStart', nextPrayer))
+	nextPrayer || console.warn('[AdhanStart] Next prayer not found!', nextPrayer),
+	nextPrayer && (this._nextPrayerTimeout = setTimeout(this.emit.bind(this), nextPrayer.timeRemaining * 6e4, 'adhanStart', nextPrayer)),
+	this.options.presence.activities = [{
+		name: nextPrayer.prayer + ' is at ' + nextPrayer.adhan.display,
+		type: 4
+	}]
 }

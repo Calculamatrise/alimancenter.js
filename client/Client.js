@@ -7,19 +7,9 @@ import InteractionHandler from "../handlers/interactions.js";
 import Adhan from "../utils/adhan.js";
 
 export default class extends Client {
-	_defaultPresence = {
-		status: 'idle',
-		activities: [{
-			name: "كلمة الله",
-			type: 2
-		}]
-	};
-	supportServerId = "433783980345655306";
-	commands = new Map();
 	database = new DatabaseManager(this);
 	developerMode = /^(dev|test)$/i.test(process.argv.at(2));
 	interactions = new InteractionHandler();
-	players = new Map();
 	serverStorage = new DatabaseManager(this);
 	terminalId = null;
 	constructor() {
@@ -107,7 +97,7 @@ export default class extends Client {
 	}
 
 	async connectClients() {
-		await this.database.connect('433783980345655306').catch(err => {
+		await this.database.connect(this.application.guildId).catch(err => {
 			console.warn('Database anchor guild not found!', err.message)
 		})
 	}
@@ -139,7 +129,7 @@ export default class extends Client {
 	}
 
 	setCommands() {
-		const { commands } = (this.developerMode ? this.guilds.cache.get(this.supportServerId) : this.application);
+		const { commands } = (this.developerMode ? this.application.guild : this.application);
 		return commands.set(Array.from(this.interactions.values()).reduce((commands, data) => {
 			if (typeof data.menus == 'object' && data.menus !== null) {
 				for (let menu in data.menus) {
@@ -156,8 +146,8 @@ export default class extends Client {
 	setPresence(presence, timeout = 6e4) {
 		presence && (this.#idleTimeout && clearTimeout(this.#idleTimeout),
 		this.#presenceTimeout && clearTimeout(this.#presenceTimeout),
-		this.#presenceTimeout = setTimeout(() => this.user.presence.set(this._defaultPresence), timeout ?? 6e4));
-		return this.user.presence.set(presence || this._defaultPresence)
+		this.#presenceTimeout = setTimeout(() => this.user.presence.set(this.options.presence), timeout ?? 6e4));
+		return this.user.presence.set(presence || this.options.presence)
 	}
 
 	#idleTimeout = null;
@@ -168,7 +158,7 @@ export default class extends Client {
 	}
 
 	async updateCommands() {
-		const { commands } = (this.developerMode ? this.guilds.cache.get(this.supportServerId) : this.application);
+		const { commands } = (this.developerMode ? this.application.guild : this.application);
 		const live = await commands.fetch();
 		const newCommands = new Map(Array.from(this.interactions.entries()).map(([key, value]) => [key, Object.fromEntries(Object.entries(value).map(([key, value]) => [key, typeof value == 'object' ? Object.assign(new value.constructor, value) : value]))]));
 		// console.log(live)
@@ -206,5 +196,15 @@ export default class extends Client {
 		}
 
 		this.emit('applicationCommandRefresh', commands)
+	}
+
+	async updateDescription() {
+		let timings = await Adhan.timings();
+		let timingsFormatted = Object.entries(timings).map(([key, value]) => {
+			return '**' + key + '**: ' + value.adhan.display + ' *<t:' + Math.floor((Date.now() + value.timeRemaining * 6e4) / 1e3) + ':R>*'
+		}).join('\n');
+		return this.application.edit({
+			description: '**Today\'s timings**\n' + timingsFormatted + '\n*Updates after Isha*'
+		})
 	}
 }

@@ -10,7 +10,7 @@ export default {
 				}
 			}).then(() => {
 				return {
-					content: `Successfully removed a mention from ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders ${interaction.context === 0 ? 'for this server' : 'for you'}.`,
+					content: `Successfully removed a mention from ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders for ${interaction.context === 0 ? 'this server' : 'you'}.`,
 					ephemeral: true
 				}
 			}).catch(err => {
@@ -23,7 +23,7 @@ export default {
 
 		return interaction.client.database[context + 's'].delete(interaction[context].id, { reminders: [event] }).then(() => {
 			return {
-				content: `Successfully disabled ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders ${interaction.context === 0 ? 'for this server' : 'for you'}.`,
+				content: `Successfully disabled ${event.replace(/(?=[A-Z])/g, ' ').toLowerCase()} reminders for ${interaction.context === 0 ? 'this server' : 'you'}.`,
 				ephemeral: true
 			}
 		}).catch(err => {

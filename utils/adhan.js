@@ -21,17 +21,26 @@ export default class Adhan extends EventEmitter {
 		return minutesRemaining
 	}
 
-	static async _fetchTimings(date, { offsetMonth = 0 } = {}) {
+	static cache = new Map();
+	// cache results
+	static async _fetchTimings(date, { force, offsetMonth = 0 } = {}) {
 		offsetMonth && date.setMonth(date.getMonth() + offsetMonth);
+		if (this.cache.size > 11 && 0 === date.getMonth()) {
+			this.cache.clear();
+		} if (!force && this.cache.has(date.getMonth())) {
+			return this.cache.get(date.getMonth());
+		}
 		return fetch("https://al-imancenter.com/api/prayerTimeTable?" + new URLSearchParams({
 			prayerMonth: date.toLocaleString('default', { month: 'long' }),
 			prayerYear: date.getFullYear()
 		}).toString()).then(r => r.json()).then(data => {
-			return data.sort((a, b) => a.prayerDay - b.prayerDay) // .map(({ prayerSchedule }) => /* prayerSchedule */ )
+			let timings = data.sort((a, b) => a.prayerDay - b.prayerDay) // .map(({ prayerSchedule }) => /* prayerSchedule */ )
 			.map(data => {
 				data.timings = Object.fromEntries(Object.entries(data.prayerSchedule).map(([, value]) => [this.toPrayer(value.salah), value.type] /* Object.values(value) */));
 				return data
-			})
+			});
+			this.cache.set(date.getMonth(), timings);
+			return timings
 		})
 	}
 
@@ -60,11 +69,11 @@ export default class Adhan extends EventEmitter {
 		return Object.values(timings).find(prayer => prayer.timeRemaining > 0)
 	}
 
-	static async timings({ appendNext, filterExpired, filter, filterPrayers = true, offsetDate = 0, prayer } = {}) {
+	static async timings({ appendNext, filterExpired, filter, filterPrayers = true, force, offsetDate = 0, prayer } = {}) {
 		let date = new Date();
 		date.setTime(date.getTime() - date.getTimezoneOffset() * 6e4),
 		offsetDate && date.setDate(date.getDate() + offsetDate);
-		return this._fetchTimings(date).then(data => {
+		return this._fetchTimings(date, { force }).then(data => {
 			offsetDate && date.setDate(date.getDate() - offsetDate),
 			date.setTime(Date.parse(date.toLocaleString('en-US', { timeZone: 'America/Vancouver' })));
 			let time = date.toLocaleTimeString('en-US', {
@@ -110,7 +119,7 @@ export default class Adhan extends EventEmitter {
 
 	static filterPassedTimes(timings, time) {
 		let entries = Object.entries(timings).reverse();
-		return Object.fromEntries(entries.filter(([,value], index) => (value.time || value) > time || (entries[index - 1] && (entries[index - 1][1].time || entries[index - 1][1]) > time)).reverse())
+		return Object.fromEntries(entries.filter(([,value], index) => (value.IQAMA.time || value) > time || (entries[index - 1] && (entries[index - 1][1].IQAMA.time || entries[index - 1][1]) > time)).reverse())
 	}
 
 	static toPrayer(string) {

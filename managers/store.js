@@ -116,14 +116,15 @@ export default class {
 		let message = await this.#findEntry(key, true)
 		  , data = message ? JSON.parse(message.content) : {}
 		  , newValue = Object.assign({}, /* this.#defaults, */ value);
-		newValue = Object.fromEntries(Object.entries(newValue).filter(([key, value]) => {
-			if (key in this.#defaults) {
-				let defaultValue = this.#defaults[key];
-				return null === defaultValue || typeof value == typeof defaultValue;
-			}
+		// newValue = Object.fromEntries(Object.entries(newValue).filter(([key, value]) => {
+		// 	if (key in this.#defaults) {
+		// 		let defaultValue = this.#defaults[key];
+		// 		return null === defaultValue || typeof value == typeof defaultValue;
+		// 	}
 
-			return false
-		}));
+		// 	return false
+		// }));
+		recursiveFilter(newValue, this.#defaults);
 		if (JSON.stringify(data[key]) !== JSON.stringify(newValue)) {
 			data[key] = newValue,
 			this.cache.set(key, newValue);
@@ -143,7 +144,7 @@ export default class {
 		return newValue
 	}
 	async update(key, value) {
-		return this.set(key, Object.assign({}, merge(Object.assign({}, await this.fetch(key)), value)))
+		return this.set(key, merge(Object.assign({}, await this.fetch(key)), value))
 	}
 	async delete(key, ...properties) {
 		let entry = await this.#findEntry(key);
@@ -152,7 +153,7 @@ export default class {
 			if (properties.length > 0) {
 				for (const query of properties) {
 					if (query instanceof Object) {
-						recursivePurge(data[key], query);
+						recursiveFilter(recursivePurge(data[key], query), this.#defaults);
 					} else if (typeof query == 'string' && data[key].hasOwnProperty(query)) {
 						delete data[key][query];
 					}
@@ -190,7 +191,7 @@ export default class {
 }
 
 function merge(parent, ...objects) {
-	if (Array.isArray(parent)) return parent.concat(...objects.flat());
+	if (Array.isArray(parent)) return Array.from(new Set(parent.concat(...objects.flat())));
 	for (const object of objects) {
 		for (const key in object) {
 			if (!object.hasOwnProperty(key)) continue;
@@ -211,18 +212,22 @@ function recursivePurge(parent, object) {
 		for (const key of object) {
 			let index = parent.indexOf(key);
 			if (index < 0) continue;
-			parent.splice(index, 1);
+			parent.splice(index, 1),
+			parent.length < 1 && (parent = null)
 		}
 		return parent;
 	}
-	for (const key in object) {
+	for (let key in object) {
 		if (!object.hasOwnProperty(key)) continue;
 		if (object[key] instanceof Object) {
 			parent[key] = recursivePurge(parent[key], object[key]);
 			continue;
+		} else if (Array.isArray(object)) {
+			key = object[key];
 		}
 
-		delete parent[key]
+		delete parent[key],
+		Object.keys(parent) < 1 && (parent = null)
 	}
 
 	return parent
@@ -230,6 +235,7 @@ function recursivePurge(parent, object) {
 
 function recursiveFilter(object, template) {
 	for (let key in object) {
+		if (template[key] === null && template[key] !== object[key]) continue;
 		if (!template.hasOwnProperty(key) || JSON.stringify(object[key]) === JSON.stringify(template[key]) || object[key] === null) {
 			delete object[key];
 		} else if (object[key] instanceof Object) {
