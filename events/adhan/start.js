@@ -1,14 +1,12 @@
+import { ActivityType } from "discord.js";
 import Adhan from "../../utils/adhan.js";
 
 export default async function (prayerInfo) {
-	this.setPresence({
-		status: 'online',
-		activities: [{
-			name: prayerInfo.prayer + ' Adhan',
-			type: 1,
-			url: 'https://youtube.com/@alimancenter2705'
-		}]
-	});
+	this.setActivity({
+		name: prayerInfo.prayer + ' Adhan',
+		type: ActivityType.Streaming,
+		url: 'https://twitch.tv/calculamatrise' // 'https://youtube.com/' + ['@alimancenter2705', 'channel/UCHUQC2oHOZHibKvbTQWUauA'][0] + '/live'
+	}, 3e5, this.updateDescription.bind(this));
 	for (let [guildId, guildData] of this.database.guilds.cache.entries()) {
 		if (!guildData || !guildData.reminders || !guildData.reminders.adhan) continue;
 		let config = guildData.reminders.adhan;
@@ -39,13 +37,11 @@ export default async function (prayerInfo) {
 		});
 	}
 
-	this.updateDescription();
-
 	let nextPrayer = await Adhan.next();
 	nextPrayer || console.warn('[AdhanStart] Next prayer not found!', nextPrayer),
 	nextPrayer && (this._nextPrayerTimeout = setTimeout(this.emit.bind(this), nextPrayer.timeRemaining * 6e4, 'adhanStart', nextPrayer)),
-	this.options.presence.activities = [{
+	this.setDefaultActivity({
 		name: nextPrayer.prayer + ' is at ' + nextPrayer.adhan.display,
-		type: 4
-	}]
+		type: ActivityType.Custom
+	})
 }

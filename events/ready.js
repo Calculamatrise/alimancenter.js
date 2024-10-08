@@ -1,3 +1,4 @@
+import { ActivityType } from "discord.js";
 import Adhan from "../utils/adhan.js";
 
 export default async function () {
@@ -11,14 +12,6 @@ export default async function () {
 		}).catch(err => console.warn("Support guild not found!", '[' + guildId + ']', err));
 	}
 
-	this.user.presence.set({
-		status: "dnd",
-		activities: [{
-			name: "Rebooting due to changes...",
-			type: 4
-		}]
-	});
-
 	await this.connectClients();
 	await this.updateCommands();
 
@@ -30,10 +23,13 @@ export default async function () {
 	// this.emit('adhanStart', nextPrayer); // emit for testing
 	nextPrayer && (this._nextPrayerTimeout = setTimeout(this.emit.bind(this), nextPrayer.timeRemaining * 6e4, 'adhanStart', nextPrayer));
 
-	this.options.presence.activities = [{
-		name: nextPrayer.prayer + ' is at ' + nextPrayer.adhan.display,
-		type: 4
-	}],
+	this.setDefaultPresence({
+		status: 'idle',
+		activities: [{
+			name: nextPrayer.prayer + ' is at ' + nextPrayer.adhan.display,
+			type: ActivityType.Custom
+		}]
+	});
 	this.user.presence.set(this.options.presence),
 	this.updateDescription()
 }

@@ -69,7 +69,7 @@ export default class Adhan extends EventEmitter {
 		return Object.values(timings).find(prayer => prayer.timeRemaining > 0)
 	}
 
-	static async timings({ appendNext, filterExpired, filter, filterPrayers = true, force, offsetDate = 0, prayer } = {}) {
+	static async timings({ appendNext, autoOffset, filterExpired, filter, filterPrayers = true, force, offsetDate = 0, prayer } = {}) {
 		let date = new Date();
 		date.setTime(date.getTime() - date.getTimezoneOffset() * 6e4),
 		offsetDate && date.setDate(date.getDate() + offsetDate);
@@ -86,6 +86,7 @@ export default class Adhan extends EventEmitter {
 			let timings = today.timings;
 			filterPrayers && (timings = this.filterNonDailyPrayers(timings));
 			let remaining = this.filterPassedTimes(timings, time);
+			autoOffset && (remaining = this.filterPassedCalls(remaining, time));
 			prayer && !remaining[this.toPrayer(prayer)] && (remaining = {});
 			Object.keys(remaining).length > 0 ? filterExpired && (timings = remaining,
 			Object.keys(remaining).length < 5 && appendNext && (today = data[date.getDate() % data.length],
@@ -94,8 +95,18 @@ export default class Adhan extends EventEmitter {
 			timings = this.filterNonDailyPrayers(today.timings));
 			return Object.fromEntries(Object.entries(timings).map(([key, value]) => {
 				return [key, {
-					adhan: value.AZAAN,
-					iqama: value.IQAMA,
+					adhan: Object.assign(value.AZAAN, {
+						timeRemaining: this._calculateMinutesRemaining(value.AZAAN.time, {
+							date,
+							offsetDate: offsetDate + Number(key.toUpperCase() === 'ISHA')
+						})
+					}),
+					iqama: Object.assign(value.IQAMA, {
+						timeRemaining: this._calculateMinutesRemaining(value.IQAMA.time, {
+							date,
+							offsetDate: offsetDate + Number(key.toUpperCase() === 'ISHA')
+						})
+					}),
 					offset: offsetDate,
 					prayer: key,
 					time: value.AZAAN.time,
@@ -117,9 +128,12 @@ export default class Adhan extends EventEmitter {
 		return Object.fromEntries(Object.entries(timings).filter(([key]) => this.prayers.includes(key.toUpperCase())))
 	}
 
+	static filterPassedCalls(timings, time) {
+		return Object.fromEntries(Object.entries(timings).filter(([,value]) => (value.AZAAN.time || value) > time))
+	}
+
 	static filterPassedTimes(timings, time) {
-		let entries = Object.entries(timings).reverse();
-		return Object.fromEntries(entries.filter(([,value], index) => (value.IQAMA.time || value) > time || (entries[index - 1] && (entries[index - 1][1].IQAMA.time || entries[index - 1][1]) > time)).reverse())
+		return Object.fromEntries(Object.entries(timings).filter(([,value]) => (value.IQAMA.time || value) > time))
 	}
 
 	static toPrayer(string) {

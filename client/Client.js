@@ -142,17 +142,31 @@ export default class extends Client {
 		}, []))
 	}
 
-	#presenceTimeout = null;
-	setPresence(presence, timeout = 6e4) {
-		presence && (this.#idleTimeout && clearTimeout(this.#idleTimeout),
-		this.#presenceTimeout && clearTimeout(this.#presenceTimeout),
-		this.#presenceTimeout = setTimeout(() => this.user.presence.set(this.options.presence), timeout ?? 6e4));
-		return this.user.presence.set(presence || this.options.presence)
+	setDefaultActivity(activity) {
+		this.options.presence.activities = [activity]
+	}
+
+	setDefaultPresence(presence) {
+		this.options.presence = presence
+	}
+
+	setDefaultStatus(status) {
+		this.options.presence.status = status
+	}
+
+	#activityTimeout = null;
+	setActivity(activity, timeout = 6e4, callback) {
+		activity && (this.#activityTimeout && clearTimeout(this.#activityTimeout),
+		this.#activityTimeout = setTimeout(() => {
+			let res = this.setActivity();
+			typeof callback == 'function' && callback(res)
+		}, timeout ?? 6e4));
+		return this.user.setActivity(activity || this.options.presence.activities[0])
 	}
 
 	#idleTimeout = null;
 	setIdle(status = true, timeout = 6e4) {
-		status || this.#presenceTimeout || (this.#idleTimeout && clearTimeout(this.#idleTimeout),
+		status || (this.#idleTimeout && clearTimeout(this.#idleTimeout),
 		this.#idleTimeout = setTimeout(() => this.user.setStatus('idle'), timeout ?? 6e4));
 		return this.user.setStatus(status ? 'idle' : 'online')
 	}
@@ -199,7 +213,7 @@ export default class extends Client {
 	}
 
 	async updateDescription() {
-		let timings = await Adhan.timings();
+		let timings = await Adhan.timings({ autoOffset: true });
 		let timingsFormatted = Object.entries(timings).map(([key, value]) => {
 			return '**' + key + '**: ' + value.adhan.display + ' *<t:' + Math.floor((Date.now() + value.timeRemaining * 6e4) / 1e3) + ':R>*'
 		}).join('\n');

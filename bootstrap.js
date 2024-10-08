@@ -1,5 +1,5 @@
 import Client from "./client/Client.js";
-import { GatewayIntentBits, Partials } from "discord.js";
+import { ActivityType, GatewayIntentBits, Partials } from "discord.js";
 
 export const client = new Client({
 	allowedMentions: {
@@ -20,10 +20,10 @@ export const client = new Client({
 		Partials.Channel // Required to receive DMs
 	],
 	presence: {
-		status: 'idle',
+		status: "dnd",
 		activities: [{
-			name: "كلمة الله",
-			type: 2
+			name: "Rebooting due to changes...",
+			type: ActivityType.Custom
 		}]
 	}
 });
